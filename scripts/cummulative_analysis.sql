@@ -1,12 +1,15 @@
+USE DataWarehouse;
+GO
+
 /*---------------------------------------------------------------------------
 Calculate the total sales per month
-and the running total sales over time
+and the running total sales and running average price over time
 ---------------------------------------------------------------------------*/
 SELECT
     order_date,
     total_sales,
     SUM(total_sales) OVER (ORDER BY order_date)   AS running_total,
-    AVG(average_price) OVER (ORDER BY order_date) AS moving_average_price
+    AVG(average_price) OVER (ORDER BY order_date) AS running_average_price
 FROM
 (
     SELECT
