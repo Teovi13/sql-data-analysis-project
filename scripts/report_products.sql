@@ -22,6 +22,9 @@ Highlights:
 =====================================================
 */
 
+USE DataWarehouse;
+GO
+
 CREATE OR ALTER VIEW gold.report_products AS
 
 /*---------------------------------------------------------------------------
@@ -97,10 +100,10 @@ SELECT
     avg_selling_price,
     CASE
         WHEN total_orders = 0 THEN 0
-        ELSE total_sales / total_orders
+        ELSE ROUND(CAST(total_sales AS DECIMAL(18, 2)) / total_orders, 2)
     END                                                        AS avg_order_revenue,
     CASE
         WHEN lifespan = 0 THEN total_sales
-        ELSE total_sales / lifespan
+        ELSE ROUND(CAST(total_sales AS DECIMAL(18, 2)) / lifespan, 2)
     END                                                        AS avg_monthly_revenue
 FROM product_aggregations;

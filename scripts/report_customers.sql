@@ -22,6 +22,9 @@ Highlights:
 =====================================================
 */
 
+USE DataWarehouse;
+GO
+
 CREATE OR ALTER VIEW gold.report_customers AS
 
 /*---------------------------------------------------------------------------
@@ -38,7 +41,9 @@ WITH base_query AS
         c.customer_key,
         c.customer_number,
         CONCAT(c.first_name, ' ', c.last_name)     AS customer_name,
-        DATEDIFF(YEAR, c.birthdate, GETDATE())      AS age
+        DATEDIFF(YEAR, c.birthdate, GETDATE())
+            - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, c.birthdate, GETDATE()), c.birthdate) > GETDATE()
+                   THEN 1 ELSE 0 END      AS age
     FROM gold.fact_sales s
     LEFT JOIN gold.dim_customers c
         ON s.customer_key = c.customer_key
@@ -78,6 +83,7 @@ SELECT
     customer_name,
     age,
     CASE
+        WHEN age IS NULL THEN 'n/a'
         WHEN age < 20 THEN 'Under 20'
         WHEN age BETWEEN 20 AND 29 THEN '20-29'
         WHEN age BETWEEN 30 AND 39 THEN '30-39'
@@ -99,11 +105,11 @@ SELECT
     -- Compute average order value
     CASE
         WHEN total_orders = 0 THEN 0
-        ELSE total_sales / total_orders
+        ELSE ROUND(CAST(total_sales AS DECIMAL(18, 2)) / total_orders, 2)
     END                                                    AS avg_order_value,
     -- Compute average monthly spend
     CASE
         WHEN lifespan = 0 THEN total_sales
-        ELSE total_sales / lifespan
+        ELSE ROUND(CAST(total_sales AS DECIMAL(18, 2)) / lifespan, 2)
     END                                                    AS avg_monthly_spend
 FROM customer_aggregation;

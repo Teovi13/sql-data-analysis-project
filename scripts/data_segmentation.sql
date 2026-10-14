@@ -1,3 +1,6 @@
+USE DataWarehouse;
+GO
+
 /*---------------------------------------------------------------------------
 Segment products into cost ranges and
 count how many products fall into each segment
