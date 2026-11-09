@@ -15,24 +15,25 @@ analyst or a BI tool would run against a warehouse that is already built.
 ## Relationship to the Data Warehouse project
 
 **This repository is not standalone.** Every script here queries the
-`gold` schema, which only exists after running the ETL pipeline in
+`gold` schema, which only exists after building the warehouse in
 [`sql-data-warehouse-project`](https://github.com/Teovi13/sql-data-warehouse-project).
 
 ```
 sql-data-warehouse-project          sql-data-analysis-project (this repo)
 ┌───────────────────────┐            ┌─────────────────────────────┐
 │ Bronze → Silver → Gold│  ────────► │ EDA · Analytics · Reporting  │
-│ (ETL, DDL, quality)   │            │ (this repository)            │
+│ (Python ingestion,    │            │ (this repository)            │
+│  dbt models and tests)│            │                              │
 └───────────────────────┘            └─────────────────────────────┘
 ```
 
 To run anything in this repo:
 
-1. Clone and run **`sql-data-warehouse-project`** first (its own README has
-   the full setup steps), including `scripts/gold/ddl_gold.sql`, which
-   creates the `gold` views (`dim_customers`, `dim_products`,
-   `fact_sales`) that every script here reads. Run the quality checks in
-   its `tests/quality_checks_gold.sql` before trusting any result.
+1. Clone and build **`sql-data-warehouse-project`** first, following its
+   README: the Bronze load and then `dbt build --target prod`, which creates
+   the `gold` views (`dim_customers`, `dim_products`, `fact_sales`) that
+   every script here reads. The same build runs the data tests of the
+   warehouse; trust the results only if it ends with `ERROR=0`.
 2. Run any script in [`scripts/`](scripts/). The numbers show the order in
    which the analysis builds up, but the scripts are independent: they can
    be run in any order and as many times as needed. Most of them only
@@ -40,6 +41,18 @@ To run anything in this repo:
    `13_report_products.sql` create the views `gold.report_customers` and
    `gold.report_products` (with `CREATE OR ALTER`, so running them again
    is safe).
+
+The two report views are created by this repository, not by the warehouse
+build, and are not schema-bound: SQL Server keeps their column types from
+the moment they were created. If the warehouse changes the columns or types
+of Gold (as when its surrogate keys became `varchar(32)` hashes), refresh
+them by running scripts 12 and 13 again, or with
+`EXEC sp_refreshview N'gold.report_customers';` and
+`EXEC sp_refreshview N'gold.report_products';`.
+
+The scripts use only the current-state Gold views. The warehouse also has
+history dimensions (`dim_customers_history`, `dim_products_history`) and
+version keys in `fact_sales`, which no script here uses yet.
 
 Requirements: SQL Server 2022 or later (the scripts that use `DATETRUNC`
 need it) and a database named `DataWarehouse`: every script starts with
